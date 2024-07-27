@@ -38,7 +38,7 @@ export class AuthController {
 
   @Get("check")
   @HttpCode(HttpStatus.OK)
-  check(@Body() loginAuthDto: LoginUserDto): Boolean {
+  check(): Boolean {
     return true
   }
 }
