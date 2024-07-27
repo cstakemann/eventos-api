@@ -44,14 +44,12 @@ export class EventsController {
   @Auth(RolesEnum.Admin)
   @ApiOperation({ summary: "Create event" })
   @ApiResponse({ status: HttpStatus.CREATED, type: CreateEventDto })
-  @UseInterceptors( FileFieldsInterceptor([ { name: "images" } ]) )
+  @UseInterceptors(FileFieldsInterceptor([{ name: "images" }]))
   async create(
     @Body() createEventDto: CreateEventDto,
     @GetUser() user: User,
     @UploadedFiles(new FileValidationPipe()) files: Image
   ): Promise<ResponseDto<Event>> {
-    console.log(createEventDto);
-    console.info("------------------------");
     const event = await this.eventsService.create(createEventDto, user, files);
 
     return new ResponseDto(
