@@ -35,4 +35,10 @@ export class AuthController {
   async login(@Body() loginAuthDto: LoginUserDto) {
     return await this.authService.login(loginAuthDto);
   }
+
+  @Get("check")
+  @HttpCode(HttpStatus.OK)
+  check(@Body() loginAuthDto: LoginUserDto): Boolean {
+    return true
+  }
 }
