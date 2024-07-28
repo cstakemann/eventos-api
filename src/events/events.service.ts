@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { CreateEventDto } from "./dto/create-event.dto";
 import { UpdateEventDto } from "./dto/update-event.dto";
 import { User } from "src/auth/entities/user.entity";
@@ -9,6 +9,9 @@ import { StatusEnum } from "src/common/enums/status.enum";
 import { Image } from "./dto/imageName.dto";
 import { Category } from "src/categories/entities/category.entity";
 import { RolesEnum } from "src/common/enums/roles.enum";
+import { UserEventDto } from "./dto/user-event.dto";
+import { UserEvent } from "./entities/user-event.entity";
+import { UserEventStatusEnum } from "src/common/enums/user-event-status.enum";
 
 @Injectable()
 export class EventsService {
@@ -16,7 +19,9 @@ export class EventsService {
     @InjectRepository(Event)
     private eventRepository: Repository<Event>,
     @InjectRepository(Category)
-    private categoryRepository: Repository<Category>
+    private categoryRepository: Repository<Category>,
+    @InjectRepository(UserEvent)
+    private readonly userEventRepository: Repository<UserEvent>,
   ) {}
 
   async create(
@@ -81,6 +86,8 @@ export class EventsService {
     if (!showAllEvents) {
       queryBuilder.where("event.published = :published", { published: true });
     }
+
+    queryBuilder.orderBy("event.id","ASC");
 
     const events = await queryBuilder.getMany();
     return events;
@@ -156,5 +163,44 @@ export class EventsService {
     await this.eventRepository.save(event);
 
     return true;
+  }
+
+  async registerUser(userEventDto: UserEventDto, user: User): Promise<UserEvent>  {
+    const { eventId } = userEventDto;
+
+    const event = await this.eventRepository.findOneBy({ id: eventId });
+    if (!event) {
+      throw new NotFoundException(`Event not found`);
+    }
+
+    const validateUserEvent = await this.validateUserEvent(eventId, user);
+    if (validateUserEvent) {
+      throw new ConflictException(`User is already registered for this event`);
+    }
+
+    const userEvent = this.userEventRepository.create({
+      event,
+      user,
+      status: UserEventStatusEnum.Active
+    });
+
+    await this.userEventRepository.save(userEvent);
+
+    delete userEvent.user;
+    delete userEvent.event;
+    delete userEvent.notes;
+    delete userEvent.updatedAt;
+    delete userEvent.status;
+
+    return userEvent;
+  }
+
+  async validateUserEvent(eventId: number, user: User): Promise<Boolean> {
+
+    const userEvent = await this.userEventRepository.count({
+      where: { event: { id: eventId }, user: { id: user.id }, status: UserEventStatusEnum.Active },
+    });
+
+    return userEvent > 0;
   }
 }

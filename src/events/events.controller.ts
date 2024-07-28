@@ -31,6 +31,8 @@ import { ResponseDto } from "src/common/dto/response.dto";
 import { FileFieldsInterceptor } from "@nestjs/platform-express";
 import { FileValidationPipe } from "src/common/pipes/file-validation.pipe";
 import { Image } from "./dto/imageName.dto";
+import { UserEventDto } from "./dto/user-event.dto";
+import { UserEvent } from "./entities/user-event.entity";
 
 @Auth()
 @ApiBearerAuth()
@@ -63,11 +65,7 @@ export class EventsController {
   @Get()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "Find all event" })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    isArray: true,
-    type: CreateEventDto,
-  })
+  @ApiResponse({ status: HttpStatus.OK, isArray: true, type: CreateEventDto })
   async findAll(@GetUser() user: User): Promise<ResponseDto<Event[]>> {
     const events = await this.eventsService.findAll(user);
 
@@ -82,11 +80,7 @@ export class EventsController {
   @Get(":id")
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "Find event by id" })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    isArray: false,
-    type: CreateEventDto,
-  })
+  @ApiResponse({ status: HttpStatus.OK, isArray: false, type: CreateEventDto })
   async findOne(@Param("id") id: string): Promise<ResponseDto<Event>> {
     const event = await this.eventsService.findOne(+id);
 
@@ -119,14 +113,24 @@ export class EventsController {
   @Delete(":id")
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "Delete event" })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    isArray: false,
-  })
+  @ApiResponse({ status: HttpStatus.OK, isArray: false })
   @Auth(RolesEnum.Admin)
   async remove(@Param("id") id: string): Promise<ResponseDto<Boolean>> {
     const removed = await this.eventsService.remove(+id);
 
     return new ResponseDto(HttpStatus.OK, "Event removed", removed, true);
+  }
+
+  @Post("register-user")
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: "Register user for an event" })
+  @ApiResponse({ status: HttpStatus.CREATED, type: UserEventDto })
+  async registerUser(
+    @Body() userEventDto: UserEventDto,
+    @GetUser() user: User
+  ): Promise<ResponseDto<UserEvent>> {
+    const result = await this.eventsService.registerUser(userEventDto, user);
+
+    return new ResponseDto(HttpStatus.OK, "User registered for the event", result, true);
   }
 }
