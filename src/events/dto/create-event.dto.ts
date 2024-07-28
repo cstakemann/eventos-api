@@ -70,14 +70,12 @@ export class CreateEventDto {
   @ApiProperty()
   duration: string;
 
-  @IsBoolean()
-  @Type(() => Boolean)
+  @IsString()
   @IsOptional()
   @ApiProperty()
   allDay?: boolean;
 
-  @IsBoolean()
-  @Type(() => Boolean)
+  @IsString()
   @IsOptional()
   @ApiProperty()
   published?: boolean;
