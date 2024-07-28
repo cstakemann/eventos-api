@@ -8,6 +8,7 @@ import { Event } from "./entities/event.entity";
 import { StatusEnum } from "src/common/enums/status.enum";
 import { Image } from "./dto/imageName.dto";
 import { Category } from "src/categories/entities/category.entity";
+import { RolesEnum } from "src/common/enums/roles.enum";
 
 @Injectable()
 export class EventsService {
@@ -23,9 +24,6 @@ export class EventsService {
     user: User,
     files: Image
   ): Promise<Event> {
-    console.log(`files:`);
-    console.log(files);
-    // return;
     const { categoryId, imageName, ...eventData } = createEventDto;
     const category = await this.categoryRepository.findOneBy({
       id: +categoryId,
@@ -47,8 +45,10 @@ export class EventsService {
     return event;
   }
 
-  async findAll(): Promise<Event[]> {
-    const events = await this.eventRepository
+  async findAll(user: User): Promise<Event[]> {
+    let showAllEvents: Boolean = false;
+
+    const queryBuilder = await this.eventRepository
       .createQueryBuilder("event")
       .select([
         "event.id",
@@ -59,6 +59,8 @@ export class EventsService {
         "event.quota",
         "event.location",
         "event.duration",
+        "event.allDay",
+        "event.published",
       ])
       .leftJoin("event.category", "category")
       .addSelect(["category.id", "category.title"])
@@ -70,9 +72,17 @@ export class EventsService {
           qb.andWhere("userEvent.status = :status", {
             status: StatusEnum.Active,
           })
-      )
-      .getMany();
+      );
 
+    if (user.userRoles.some((userRole) => userRole.role.title == RolesEnum.Admin)) {
+      showAllEvents = true;
+    }
+
+    if (!showAllEvents) {
+      queryBuilder.where("event.published = :published", { published: true });
+    }
+
+    const events = await queryBuilder.getMany();
     return events;
   }
 
@@ -90,6 +100,8 @@ export class EventsService {
         "event.quota",
         "event.location",
         "event.duration",
+        "event.allDay",
+        "event.published",
       ])
       .leftJoin("event.category", "category")
       .addSelect(["category.id", "category.title"])

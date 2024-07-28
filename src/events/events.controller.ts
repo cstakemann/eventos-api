@@ -68,9 +68,8 @@ export class EventsController {
     isArray: true,
     type: CreateEventDto,
   })
-  @Auth(RolesEnum.Admin)
-  async findAll(): Promise<ResponseDto<Event[]>> {
-    const events = await this.eventsService.findAll();
+  async findAll(@GetUser() user: User): Promise<ResponseDto<Event[]>> {
+    const events = await this.eventsService.findAll(user);
 
     return new ResponseDto(
       HttpStatus.OK,
@@ -102,6 +101,7 @@ export class EventsController {
   @Patch(":id")
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "Update event" })
+  @Auth(RolesEnum.Admin)
   async update(
     @Param("id") id: string,
     @Body() updateEventDto: UpdateEventDto,
@@ -123,6 +123,7 @@ export class EventsController {
     status: HttpStatus.OK,
     isArray: false,
   })
+  @Auth(RolesEnum.Admin)
   async remove(@Param("id") id: string): Promise<ResponseDto<Boolean>> {
     const removed = await this.eventsService.remove(+id);
 
