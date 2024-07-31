@@ -7,6 +7,7 @@ import { User } from "./entities/user.entity";
 import { GetUser } from "./decorators/get-user.decorator";
 import { RolesEnum } from "src/common/enums/roles.enum";
 import { ApiExcludeController, ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
+import { ResponseDto } from "src/common/dto/response.dto";
 
 @ApiTags('auth')
 @ApiExcludeController()
@@ -22,7 +23,9 @@ export class AuthController {
     type: CreateUserDto
   })
   async create(@Body() createAuthDto: CreateUserDto) {
-    return await this.authService.create(createAuthDto);
+    const response = await this.authService.create(createAuthDto);
+
+    return new ResponseDto(HttpStatus.OK, "User created successfully", response, true);
   }
 
   @Post("login")
@@ -33,7 +36,9 @@ export class AuthController {
     type: LoginUserDto
   })
   async login(@Body() loginAuthDto: LoginUserDto) {
-    return await this.authService.login(loginAuthDto);
+    const response = await this.authService.login(loginAuthDto);
+
+    return new ResponseDto(HttpStatus.OK, "User logged in", response, true);
   }
 
   @Get("check")

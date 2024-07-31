@@ -68,7 +68,7 @@ export class EventsService {
         "event.published",
       ])
       .leftJoin("event.category", "category")
-      .addSelect(["category.id", "category.title"])
+      .addSelect(["category.id", "category.title", "category.color"])
       .loadRelationCountAndMap(
         "event.usersQuantity",
         "event.userEvents",
@@ -111,7 +111,7 @@ export class EventsService {
         "event.published",
       ])
       .leftJoin("event.category", "category")
-      .addSelect(["category.id", "category.title"])
+      .addSelect(["category.id", "category.title", "category.color"])
       .loadRelationCountAndMap(
         "event.usersQuantity",
         "event.userEvents",
