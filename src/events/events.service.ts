@@ -60,6 +60,7 @@ export class EventsService {
         "event.title",
         "event.mainImage",
         "event.description",
+        "event.instructions",
         "event.date",
         "event.quota",
         "event.location",
@@ -87,7 +88,7 @@ export class EventsService {
       queryBuilder.where("event.published = :published", { published: true });
     }
 
-    queryBuilder.orderBy("event.id","ASC");
+    queryBuilder.orderBy("event.id","DESC");
 
     const events = await queryBuilder.getMany();
     return events;
@@ -103,6 +104,7 @@ export class EventsService {
         "event.title",
         "event.mainImage",
         "event.description",
+        "event.instructions",
         "event.date",
         "event.quota",
         "event.location",
