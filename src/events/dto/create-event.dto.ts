@@ -27,6 +27,8 @@ export class CreateEventDto {
   @ApiProperty()
   mainImage?: string;
 
+  images: Express.Multer.File[]
+
   @IsString()
   @IsOptional()
   @ApiPropertyOptional()

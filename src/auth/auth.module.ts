@@ -26,7 +26,7 @@ import { UserRole } from "./entities/user-role.entity";
         return {
           secret: configService.get("JWT_SECRET"),
           signOptions: {
-            expiresIn: "2h",
+            expiresIn: "7d",
           },
         };
       },

@@ -52,6 +52,7 @@ export class EventsController {
     @GetUser() user: User,
     @UploadedFiles(new FileValidationPipe()) files: Image
   ): Promise<ResponseDto<Event>> {
+    console.log(`files: `,files.images)
     const event = await this.eventsService.create(createEventDto, user, files);
 
     return new ResponseDto(
