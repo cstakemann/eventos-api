@@ -29,7 +29,7 @@ export class EventsService {
     user: User,
     files: Image
   ): Promise<Event> {
-    const { categoryId, imageName, ...eventData } = createEventDto;
+    const { categoryId, mainImage, ...eventData } = createEventDto;
     const category = await this.categoryRepository.findOneBy({
       id: +categoryId,
     });
@@ -40,7 +40,7 @@ export class EventsService {
       ...eventData,
       category,
       user,
-      imageName: imageName,
+      mainImage: mainImage,
     });
 
     await this.eventRepository.save(event);

@@ -25,7 +25,7 @@ export class CreateEventDto {
   @MinLength(3)
   @MaxLength(255)
   @ApiProperty()
-  imageName?: string;
+  mainImage?: string;
 
   @IsString()
   @IsOptional()

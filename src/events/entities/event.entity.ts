@@ -24,7 +24,7 @@ export class Event {
   @Column("text", {
     nullable: true,
   })
-  imageName: string;
+  mainImage: string;
 
   @Column("text", {
     nullable: true,
