@@ -78,6 +78,18 @@ export class EventsService {
           qb.andWhere("userEvent.status = :status", {
             status: StatusEnum.Active,
           })
+      )
+      .loadRelationCountAndMap(
+        "event.isUserRegistered",
+        "event.userEvents",
+        "userEvent",
+        (qb) =>
+          qb.andWhere('userEvent.status = :status', {
+            status: StatusEnum.Active,
+          })
+          .andWhere('userEvent.userId = :userId', {
+            userId: user.id,
+          })
       );
 
     if (user.userRoles.some((userRole) => userRole.role.title == RolesEnum.Admin)) {
