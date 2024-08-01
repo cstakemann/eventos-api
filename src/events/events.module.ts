@@ -1,4 +1,4 @@
-import { Module } from "@nestjs/common";
+import { MiddlewareConsumer, Module, RequestMethod } from "@nestjs/common";
 import { EventsService } from "./events.service";
 import { EventsController } from "./events.controller";
 import { TypeOrmModule } from "@nestjs/typeorm";
@@ -13,7 +13,7 @@ import { CategoriesModule } from "src/categories/categories.module";
   providers: [EventsService],
   imports: [
     CategoriesModule,
-    TypeOrmModule.forFeature([Event,UserEvent, EventDocument]),
+    TypeOrmModule.forFeature([Event, UserEvent, EventDocument]),
     PassportModule.register({
       defaultStrategy: "jwt",
     }),

@@ -3,11 +3,14 @@ import { AppModule } from "./app.module";
 import { Logger, ValidationPipe } from "@nestjs/common";
 import { AllExceptionsFilter } from "./common/filters/all-exceptions.filter";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
+import { LoggerMiddleware } from "./common/middleware/logger.middleware";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.enableCors();
   const logger = new Logger("Bootstrap");
+  app.use(new LoggerMiddleware().use);
+
 
   app.setGlobalPrefix("api");
 

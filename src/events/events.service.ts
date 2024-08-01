@@ -58,7 +58,7 @@ export class EventsService {
       .select([
         "event.id",
         "event.title",
-        "event.imageName",
+        "event.mainImage",
         "event.description",
         "event.date",
         "event.quota",
@@ -101,7 +101,7 @@ export class EventsService {
       .select([
         "event.id",
         "event.title",
-        "event.imageName",
+        "event.mainImage",
         "event.description",
         "event.date",
         "event.quota",
