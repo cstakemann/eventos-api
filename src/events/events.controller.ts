@@ -33,6 +33,8 @@ import { FileValidationPipe } from "src/common/pipes/file-validation.pipe";
 import { Image } from "./dto/imageName.dto";
 import { UserEventDto } from "./dto/user-event.dto";
 import { UserEvent } from "./entities/user-event.entity";
+import { diskStorage } from "multer";
+import * as path from 'path';
 
 @Auth()
 @ApiBearerAuth()
@@ -46,13 +48,28 @@ export class EventsController {
   @Auth(RolesEnum.Admin)
   @ApiOperation({ summary: "Create event" })
   @ApiResponse({ status: HttpStatus.CREATED, type: CreateEventDto })
-  @UseInterceptors(FileFieldsInterceptor([{ name: "images" }]))
+  @UseInterceptors(FileFieldsInterceptor([{ name: "images" }], {
+    storage: diskStorage({
+      destination: 'public/img',
+      filename: (req, file, cb) => {
+        const user = req.user as User;
+        const pepe = req.body as CreateEventDto;
+        const userId = user.id;
+        const timestamp = Date.now();
+        const ext = path.extname(file.originalname);
+        const newFilename = `${userId}_${timestamp}${ext}`;
+        if (file.originalname == req.body.mainImage) {
+          req.body.mainImage = newFilename
+        }        
+        cb(null, newFilename);
+      },
+    }),
+  }))
   async create(
     @Body() createEventDto: CreateEventDto,
     @GetUser() user: User,
     @UploadedFiles(new FileValidationPipe()) files: Image
   ): Promise<ResponseDto<Event>> {
-    console.log(`files: `,files.images)
     const event = await this.eventsService.create(createEventDto, user, files);
 
     return new ResponseDto(

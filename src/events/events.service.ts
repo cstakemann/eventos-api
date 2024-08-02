@@ -12,6 +12,8 @@ import { RolesEnum } from "src/common/enums/roles.enum";
 import { UserEventDto } from "./dto/user-event.dto";
 import { UserEvent } from "./entities/user-event.entity";
 import { UserEventStatusEnum } from "src/common/enums/user-event-status.enum";
+import { EventDocument } from "./entities/event-documents.entity";
+import { ConfigService } from "@nestjs/config";
 
 @Injectable()
 export class EventsService {
@@ -22,6 +24,9 @@ export class EventsService {
     private categoryRepository: Repository<Category>,
     @InjectRepository(UserEvent)
     private readonly userEventRepository: Repository<UserEvent>,
+    @InjectRepository(EventDocument)
+    private readonly eventDocumentRepository: Repository<EventDocument>,
+    private readonly configService: ConfigService,
   ) {}
 
   async create(
@@ -29,6 +34,7 @@ export class EventsService {
     user: User,
     files: Image
   ): Promise<Event> {
+    console.log(`files: `,files)
     const { categoryId, mainImage, ...eventData } = createEventDto;
     const category = await this.categoryRepository.findOneBy({
       id: +categoryId,
@@ -44,6 +50,22 @@ export class EventsService {
     });
 
     await this.eventRepository.save(event);
+
+    if(files && Object.keys(files).length > 0) {
+      const baseUrl = this.configService.get('BASE_URL');
+      const eventDocuments = files.images.map(image => {
+        const url = `${baseUrl}${image.filename}`;
+        return this.eventDocumentRepository.create({
+          documentName: image.filename,
+          documentUrl: url,
+          user,
+          event,
+          status: StatusEnum.Active
+        });
+      });
+
+      await this.eventDocumentRepository.save(eventDocuments);
+    }
 
     delete event.user;
 
@@ -70,6 +92,8 @@ export class EventsService {
       ])
       .leftJoin("event.category", "category")
       .addSelect(["category.id", "category.title", "category.color"])
+      .leftJoin("event.eventDocuments", "eventDocuments")
+      .addSelect(["eventDocuments.id", "eventDocuments.documentName", "eventDocuments.documentUrl"])
       .loadRelationCountAndMap(
         "event.usersQuantity",
         "event.userEvents",
@@ -126,6 +150,8 @@ export class EventsService {
       ])
       .leftJoin("event.category", "category")
       .addSelect(["category.id", "category.title", "category.color"])
+      .leftJoin("event.eventDocuments", "eventDocuments")
+      .addSelect(["eventDocuments.id", "eventDocuments.documentName", "eventDocuments.documentUrl"])
       .loadRelationCountAndMap(
         "event.usersQuantity",
         "event.userEvents",

@@ -7,11 +7,13 @@ import { UserEvent } from "./entities/user-event.entity";
 import { EventDocument } from "./entities/event-documents.entity";
 import { PassportModule } from "@nestjs/passport";
 import { CategoriesModule } from "src/categories/categories.module";
+import { ConfigModule } from "@nestjs/config";
 
 @Module({
   controllers: [EventsController],
   providers: [EventsService],
   imports: [
+    ConfigModule,
     CategoriesModule,
     TypeOrmModule.forFeature([Event, UserEvent, EventDocument]),
     PassportModule.register({
