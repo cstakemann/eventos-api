@@ -92,8 +92,8 @@ export class EventsService {
       ])
       .leftJoin("event.category", "category")
       .addSelect(["category.id", "category.title", "category.color"])
-      .leftJoin("event.eventDocuments", "eventDocuments")
-      .addSelect(["eventDocuments.id", "eventDocuments.documentName", "eventDocuments.documentUrl"])
+      .leftJoin("event.eventDocuments", "images")
+      .addSelect(["images.id", "images.documentName", "images.documentUrl"])
       .loadRelationCountAndMap(
         "event.usersQuantity",
         "event.userEvents",
@@ -150,8 +150,8 @@ export class EventsService {
       ])
       .leftJoin("event.category", "category")
       .addSelect(["category.id", "category.title", "category.color"])
-      .leftJoin("event.eventDocuments", "eventDocuments")
-      .addSelect(["eventDocuments.id", "eventDocuments.documentName", "eventDocuments.documentUrl"])
+      .leftJoin("event.eventDocuments", "images")
+      .addSelect(["images.id", "images.documentName", "images.documentUrl"])
       .loadRelationCountAndMap(
         "event.usersQuantity",
         "event.userEvents",
