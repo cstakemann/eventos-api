@@ -92,8 +92,8 @@ export class EventsService {
       ])
       .leftJoin("event.category", "category")
       .addSelect(["category.id", "category.title", "category.color"])
-      .leftJoin("event.eventDocuments", "images")
-      .addSelect(["images.id", "images.documentName", "images.documentUrl"])
+      .leftJoin("event.eventDocuments", "eventDocuments")
+      .addSelect(["eventDocuments.id", "eventDocuments.documentName", "eventDocuments.documentUrl"])
       .loadRelationCountAndMap(
         "event.usersQuantity",
         "event.userEvents",
@@ -127,7 +127,22 @@ export class EventsService {
     queryBuilder.orderBy("event.id","DESC");
 
     const events = await queryBuilder.getMany();
-    return events;
+
+    // Transform the results
+    const transformedEvents = events.map(event => {
+      return {
+        ...event,
+        images: event.eventDocuments,
+      };
+    });
+
+    // Remove the original property to clean up the result
+    transformedEvents.forEach(event => {
+      delete event.eventDocuments;
+    });
+
+
+    return transformedEvents;
   }
 
   async findOne(id: number): Promise<Event> {
@@ -150,8 +165,8 @@ export class EventsService {
       ])
       .leftJoin("event.category", "category")
       .addSelect(["category.id", "category.title", "category.color"])
-      .leftJoin("event.eventDocuments", "images")
-      .addSelect(["images.id", "images.documentName", "images.documentUrl"])
+      .leftJoin("event.eventDocuments", "eventDocuments")
+      .addSelect(["eventDocuments.id", "eventDocuments.documentName", "eventDocuments.documentUrl"])
       .loadRelationCountAndMap(
         "event.usersQuantity",
         "event.userEvents",
@@ -167,8 +182,17 @@ export class EventsService {
     if (!events) {
       throw new NotFoundException(`Event with ID ${id} not found`);
     }
+    
+     // Transform the result to rename eventDocuments to images
+    const transformedEvent = {
+      ...events,
+      images: events.eventDocuments,
+    };
 
-    return events;
+    // Remove the original property to clean up the result
+    delete transformedEvent.eventDocuments;
+
+    return transformedEvent;
   }
 
   async update(
