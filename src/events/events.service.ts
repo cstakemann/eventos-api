@@ -130,9 +130,18 @@ export class EventsService {
 
     // Transform the results
     const transformedEvents = events.map(event => {
+      // Organize the images array
+      let images = event.eventDocuments || [];
+      const mainImageIndex = images.findIndex(img => img.documentName === event.mainImage);
+
+      if (mainImageIndex !== -1) {
+        const mainImage = images.splice(mainImageIndex, 1)[0];
+        images = [mainImage, ...images];
+      }
+
       return {
         ...event,
-        images: event.eventDocuments,
+        images,
       };
     });
 
@@ -183,10 +192,19 @@ export class EventsService {
       throw new NotFoundException(`Event with ID ${id} not found`);
     }
     
-     // Transform the result to rename eventDocuments to images
+    // Organize the images array
+    let images = events.eventDocuments || [];
+    const mainImageIndex = images.findIndex(img => img.documentName === events.mainImage);
+
+    if (mainImageIndex !== -1) {
+      const mainImage = images.splice(mainImageIndex, 1)[0];
+      images = [mainImage, ...images];
+    }
+
+    // Transform the result to rename eventDocuments to images
     const transformedEvent = {
       ...events,
-      images: events.eventDocuments,
+      images,
     };
 
     // Remove the original property to clean up the result
