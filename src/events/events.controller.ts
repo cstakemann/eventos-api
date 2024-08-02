@@ -12,6 +12,7 @@ import {
   UploadedFiles,
   ParseFilePipeBuilder,
   UsePipes,
+  Query,
 } from "@nestjs/common";
 import { EventsService } from "./events.service";
 import { CreateEventDto } from "./dto/create-event.dto";
@@ -35,6 +36,7 @@ import { UserEventDto } from "./dto/user-event.dto";
 import { UserEvent } from "./entities/user-event.entity";
 import { diskStorage } from "multer";
 import * as path from 'path';
+import { PaginationDto } from "src/common/dto/pagination.dto";
 
 @Auth()
 @ApiBearerAuth()
@@ -84,8 +86,8 @@ export class EventsController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "Find all event" })
   @ApiResponse({ status: HttpStatus.OK, isArray: true, type: CreateEventDto })
-  async findAll(@GetUser() user: User): Promise<ResponseDto<Event[]>> {
-    const events = await this.eventsService.findAll(user);
+  async findAll(@Query() paginationDto: PaginationDto, @GetUser() user: User): Promise<ResponseDto<Event[]>> {
+    const events = await this.eventsService.findAll(paginationDto, user);
 
     return new ResponseDto(
       HttpStatus.OK,

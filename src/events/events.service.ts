@@ -1,4 +1,8 @@
-import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import { CreateEventDto } from "./dto/create-event.dto";
 import { UpdateEventDto } from "./dto/update-event.dto";
 import { User } from "src/auth/entities/user.entity";
@@ -14,9 +18,12 @@ import { UserEvent } from "./entities/user-event.entity";
 import { UserEventStatusEnum } from "src/common/enums/user-event-status.enum";
 import { EventDocument } from "./entities/event-documents.entity";
 import { ConfigService } from "@nestjs/config";
+import { PaginationDto } from "src/common/dto/pagination.dto";
 
 @Injectable()
 export class EventsService {
+  private defaultLimit: number;
+
   constructor(
     @InjectRepository(Event)
     private eventRepository: Repository<Event>,
@@ -26,15 +33,17 @@ export class EventsService {
     private readonly userEventRepository: Repository<UserEvent>,
     @InjectRepository(EventDocument)
     private readonly eventDocumentRepository: Repository<EventDocument>,
-    private readonly configService: ConfigService,
-  ) {}
+    private readonly configService: ConfigService
+  ) {
+    this.defaultLimit = this.configService.get("DEFAULT_LIMIT");
+  }
 
   async create(
     createEventDto: CreateEventDto,
     user: User,
     files: Image
   ): Promise<Event> {
-    console.log(`files: `,files)
+    console.log(`files: `, files);
     const { categoryId, mainImage, ...eventData } = createEventDto;
     const category = await this.categoryRepository.findOneBy({
       id: +categoryId,
@@ -51,16 +60,16 @@ export class EventsService {
 
     await this.eventRepository.save(event);
 
-    if(files && Object.keys(files).length > 0) {
-      const baseUrl = this.configService.get('BASE_URL');
-      const eventDocuments = files.images.map(image => {
+    if (files && Object.keys(files).length > 0) {
+      const baseUrl = this.configService.get("BASE_URL");
+      const eventDocuments = files.images.map((image) => {
         const url = `${baseUrl}${image.filename}`;
         return this.eventDocumentRepository.create({
           documentName: image.filename,
           documentUrl: url,
           user,
           event,
-          status: StatusEnum.Active
+          status: StatusEnum.Active,
         });
       });
 
@@ -72,7 +81,12 @@ export class EventsService {
     return event;
   }
 
-  async findAll(user: User): Promise<Event[]> {
+  async findAll(paginationDto: PaginationDto, user: User): Promise<Event[]> {
+    const {
+      limit = this.defaultLimit,
+      offset = 0,
+      published,
+    } = paginationDto;
     let showAllEvents: Boolean = false;
 
     const queryBuilder = await this.eventRepository
@@ -93,7 +107,11 @@ export class EventsService {
       .leftJoin("event.category", "category")
       .addSelect(["category.id", "category.title", "category.color"])
       .leftJoin("event.eventDocuments", "eventDocuments")
-      .addSelect(["eventDocuments.id", "eventDocuments.documentName", "eventDocuments.documentUrl"])
+      .addSelect([
+        "eventDocuments.id",
+        "eventDocuments.documentName",
+        "eventDocuments.documentUrl",
+      ])
       .loadRelationCountAndMap(
         "event.usersQuantity",
         "event.userEvents",
@@ -108,12 +126,13 @@ export class EventsService {
         "event.userEvents",
         "userEvent",
         (qb) =>
-          qb.andWhere('userEvent.status = :status', {
-            status: StatusEnum.Active,
-          })
-          .andWhere('userEvent.userId = :userId', {
-            userId: user.id,
-          })
+          qb
+            .andWhere("userEvent.status = :status", {
+              status: StatusEnum.Active,
+            })
+            .andWhere("userEvent.userId = :userId", {
+              userId: user.id,
+            })
       );
 
     if (user.userRoles.some((userRole) => userRole.role.title == RolesEnum.Admin)) {
@@ -124,15 +143,22 @@ export class EventsService {
       queryBuilder.where("event.published = :published", { published: true });
     }
 
-    queryBuilder.orderBy("event.id","DESC");
+    if(showAllEvents && published) {
+      queryBuilder.where("event.published = :published", { published: published });
+    }
 
-    const events = await queryBuilder.getMany();
+    queryBuilder.orderBy("event.id", "DESC");
+
+    // const events = await queryBuilder.limit(Number(limit)).getMany();
+    const events = await queryBuilder.take(limit).skip(offset).getMany();
 
     // Transform the results
-    const transformedEvents = events.map(event => {
+    const transformedEvents = events.map((event) => {
       // Organize the images array
       let images = event.eventDocuments || [];
-      const mainImageIndex = images.findIndex(img => img.documentName === event.mainImage);
+      const mainImageIndex = images.findIndex(
+        (img) => img.documentName === event.mainImage
+      );
 
       if (mainImageIndex !== -1) {
         const mainImage = images.splice(mainImageIndex, 1)[0];
@@ -146,10 +172,9 @@ export class EventsService {
     });
 
     // Remove the original property to clean up the result
-    transformedEvents.forEach(event => {
+    transformedEvents.forEach((event) => {
       delete event.eventDocuments;
     });
-
 
     return transformedEvents;
   }
@@ -175,7 +200,11 @@ export class EventsService {
       .leftJoin("event.category", "category")
       .addSelect(["category.id", "category.title", "category.color"])
       .leftJoin("event.eventDocuments", "eventDocuments")
-      .addSelect(["eventDocuments.id", "eventDocuments.documentName", "eventDocuments.documentUrl"])
+      .addSelect([
+        "eventDocuments.id",
+        "eventDocuments.documentName",
+        "eventDocuments.documentUrl",
+      ])
       .loadRelationCountAndMap(
         "event.usersQuantity",
         "event.userEvents",
@@ -191,10 +220,12 @@ export class EventsService {
     if (!events) {
       throw new NotFoundException(`Event with ID ${id} not found`);
     }
-    
+
     // Organize the images array
     let images = events.eventDocuments || [];
-    const mainImageIndex = images.findIndex(img => img.documentName === events.mainImage);
+    const mainImageIndex = images.findIndex(
+      (img) => img.documentName === events.mainImage
+    );
 
     if (mainImageIndex !== -1) {
       const mainImage = images.splice(mainImageIndex, 1)[0];
@@ -247,7 +278,10 @@ export class EventsService {
     return true;
   }
 
-  async registerUser(userEventDto: UserEventDto, user: User): Promise<UserEvent>  {
+  async registerUser(
+    userEventDto: UserEventDto,
+    user: User
+  ): Promise<UserEvent> {
     const { eventId } = userEventDto;
 
     const event = await this.eventRepository.findOneBy({ id: eventId });
@@ -263,7 +297,7 @@ export class EventsService {
     const userEvent = this.userEventRepository.create({
       event,
       user,
-      status: UserEventStatusEnum.Active
+      status: UserEventStatusEnum.Active,
     });
 
     await this.userEventRepository.save(userEvent);
@@ -278,9 +312,12 @@ export class EventsService {
   }
 
   async validateUserEvent(eventId: number, user: User): Promise<Boolean> {
-
     const userEvent = await this.userEventRepository.count({
-      where: { event: { id: eventId }, user: { id: user.id }, status: UserEventStatusEnum.Active },
+      where: {
+        event: { id: eventId },
+        user: { id: user.id },
+        status: UserEventStatusEnum.Active,
+      },
     });
 
     return userEvent > 0;
