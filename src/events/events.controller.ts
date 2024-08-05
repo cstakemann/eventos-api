@@ -37,6 +37,7 @@ import { UserEvent } from "./entities/user-event.entity";
 import { diskStorage } from "multer";
 import * as path from 'path';
 import { PaginationDto } from "src/common/dto/pagination.dto";
+import { UpdateUserEventDto } from "./dto/update-user-event.dto";
 
 @Auth()
 @ApiBearerAuth()
@@ -101,8 +102,8 @@ export class EventsController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "Find event by id" })
   @ApiResponse({ status: HttpStatus.OK, isArray: false, type: CreateEventDto })
-  async findOne(@Param("id") id: string): Promise<ResponseDto<Event>> {
-    const event = await this.eventsService.findOne(+id);
+  async findOne(@Param("id") id: string, @GetUser() user: User): Promise<ResponseDto<Event>> {
+    const event = await this.eventsService.findOne(+id, user);
 
     return new ResponseDto(
       HttpStatus.OK,
@@ -141,9 +142,9 @@ export class EventsController {
     return new ResponseDto(HttpStatus.OK, "Event removed", removed, true);
   }
 
-  @Post("register-user")
+  @Post("enroll")
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: "Register user for an event" })
+  @ApiOperation({ summary: "Enroll user for an event" })
   @ApiResponse({ status: HttpStatus.CREATED, type: UserEventDto })
   async registerUser(
     @Body() userEventDto: UserEventDto,
@@ -152,5 +153,23 @@ export class EventsController {
     const result = await this.eventsService.registerUser(userEventDto, user);
 
     return new ResponseDto(HttpStatus.OK, "User registered for the event", result, true);
+  }
+
+  @Patch("enroll/:id")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: "Update enroll user for an event" })
+  @Auth(RolesEnum.Admin)
+  async updateEnroll(
+    @Param("id") id: string,
+    @Body() updateEventDto: UpdateUserEventDto,
+    @GetUser() user: User
+  ): Promise<ResponseDto<UserEvent>> {
+    const eventUpdated = await this.eventsService.updateEnroll(
+      +id,
+      updateEventDto,
+      user
+    );
+
+    return new ResponseDto(HttpStatus.OK, "Enroll updated", eventUpdated, true);
   }
 }

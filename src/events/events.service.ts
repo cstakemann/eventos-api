@@ -19,6 +19,7 @@ import { UserEventStatusEnum } from "src/common/enums/user-event-status.enum";
 import { EventDocument } from "./entities/event-documents.entity";
 import { ConfigService } from "@nestjs/config";
 import { PaginationDto } from "src/common/dto/pagination.dto";
+import { UpdateUserEventDto } from "./dto/update-user-event.dto";
 
 @Injectable()
 export class EventsService {
@@ -122,7 +123,7 @@ export class EventsService {
           })
       )
       .loadRelationCountAndMap(
-        "event.isUserRegistered",
+        "event.isUserEnrolled",
         "event.userEvents",
         "userEvent",
         (qb) =>
@@ -179,7 +180,7 @@ export class EventsService {
     return transformedEvents;
   }
 
-  async findOne(id: number): Promise<Event> {
+  async findOne(id: number, user: User): Promise<Event> {
     const eventId = id;
 
     const events = await this.eventRepository
@@ -213,6 +214,19 @@ export class EventsService {
           qb.andWhere("userEvent.status = :status", {
             status: StatusEnum.Active,
           })
+      )
+      .loadRelationCountAndMap(
+        "event.isUserEnrolled",
+        "event.userEvents",
+        "userEvent",
+        (qb) =>
+          qb
+            .andWhere("userEvent.status = :status", {
+              status: StatusEnum.Active,
+            })
+            .andWhere("userEvent.userId = :userId", {
+              userId: user.id,
+            })
       )
       .where("event.id = :eventId", { eventId })
       .getOne();
@@ -321,5 +335,27 @@ export class EventsService {
     });
 
     return userEvent > 0;
+  }
+
+  async updateEnroll(
+    id: number,
+    updateEventDto: UpdateUserEventDto,
+    user: User
+  ): Promise<UserEvent> {
+    const userEvent = await this.userEventRepository.preload({
+      id,
+      ...updateEventDto,
+    });
+
+    if (!userEvent) throw new NotFoundException("Event not found");
+
+    userEvent.user = user;
+
+    Object.assign(userEvent, updateEventDto);
+
+    const updated = await this.userEventRepository.save(userEvent);
+
+    delete updated.user;
+    return updated;
   }
 }

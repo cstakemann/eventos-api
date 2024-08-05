@@ -4,3 +4,8 @@ export enum StatusEnum {
   Approved = "AP",
   Rejected = "R",
 }
+
+export enum UserEventStatusEnum {
+  Active = "A",
+  Inactive = "I"
+}
