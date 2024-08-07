@@ -17,7 +17,7 @@ import { Event } from "src/events/entities/event.entity";
 @Entity("users")
 export class User {
   @PrimaryGeneratedColumn('uuid')
-  id: number;
+  id: string;
 
   @OneToMany(() => UserRole, userRole => userRole.user)
   userRoles: UserRole[];

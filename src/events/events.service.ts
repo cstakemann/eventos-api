@@ -83,11 +83,7 @@ export class EventsService {
   }
 
   async findAll(paginationDto: PaginationDto, user: User): Promise<Event[]> {
-    const {
-      limit = this.defaultLimit,
-      offset = 0,
-      published,
-    } = paginationDto;
+    const { limit = this.defaultLimit, offset = 0, published } = paginationDto;
     let showAllEvents: Boolean = false;
 
     const queryBuilder = await this.eventRepository
@@ -136,7 +132,9 @@ export class EventsService {
             })
       );
 
-    if (user.userRoles.some((userRole) => userRole.role.title == RolesEnum.Admin)) {
+    if (
+      user.userRoles.some((userRole) => userRole.role.title == RolesEnum.Admin)
+    ) {
       showAllEvents = true;
     }
 
@@ -144,8 +142,10 @@ export class EventsService {
       queryBuilder.where("event.published = :published", { published: true });
     }
 
-    if(showAllEvents && published) {
-      queryBuilder.where("event.published = :published", { published: published });
+    if (showAllEvents && published) {
+      queryBuilder.where("event.published = :published", {
+        published: published,
+      });
     }
 
     queryBuilder.orderBy("event.id", "DESC");
@@ -357,5 +357,45 @@ export class EventsService {
 
     delete updated.user;
     return updated;
+  }
+
+  async getTotalHoursAcumulated(user: User) {
+    const { date } = this.getCurrentDate();
+    const userEvent = await this.userEventRepository
+      .createQueryBuilder("userEvent")
+      .leftJoinAndSelect("userEvent.event", "event")
+      .where("userEvent.userId = :userId", { userId: user.id })
+      .andWhere("userEvent.status = :status", { status: StatusEnum.Active })
+      .andWhere("event.date <= :date", { date })
+      .getMany();
+
+    const total = this.calculateTotalHours(userEvent);
+
+    return total;
+  }
+
+  getCurrentDate(): { date: string } {
+    const currentDate = new Date();
+    const year = currentDate.getFullYear();
+    const month = String(currentDate.getMonth() + 1).padStart(2, "0");
+    const day = String(currentDate.getDate()).padStart(2, "0");
+    const formattedDate = `${year}-${month}-${day}`;
+
+    return { date: formattedDate };
+  }
+
+  calculateTotalHours(userEvents: UserEvent[]): number {
+    let total: number = 0;
+    userEvents.forEach((userEvent) => {
+      const { event } = userEvent;
+      if (event.allDay) {
+        total = total + 8;
+        return;
+      }
+
+      total = total + Number(event.duration);
+    });
+
+    return total;
   }
 }

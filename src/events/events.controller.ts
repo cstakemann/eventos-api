@@ -10,8 +10,6 @@ import {
   HttpStatus,
   UseInterceptors,
   UploadedFiles,
-  ParseFilePipeBuilder,
-  UsePipes,
   Query,
 } from "@nestjs/common";
 import { EventsService } from "./events.service";
@@ -94,6 +92,21 @@ export class EventsController {
       HttpStatus.OK,
       "Events retrieved successfully",
       events,
+      true
+    );
+  }
+
+  @Get("total-hours")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: "Find the total hours the user has accumulated" })
+  @ApiResponse({ status: HttpStatus.OK, isArray: false, type: Number })
+  async getTotalHoursAcumulated(@GetUser() user: User) {
+    const hours = await this.eventsService.getTotalHoursAcumulated(user);
+
+    return new ResponseDto(
+      HttpStatus.OK,
+      "Total hours retrieved successfully",
+      hours,
       true
     );
   }
