@@ -158,7 +158,7 @@ export class EventsController {
   @Patch("enroll/:id")
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "Update enroll user for an event" })
-  @Auth(RolesEnum.Admin)
+  // @Auth(RolesEnum.Admin)
   async updateEnroll(
     @Param("id") id: string,
     @Body() updateEventDto: UpdateUserEventDto,

@@ -34,29 +34,10 @@ export class User {
   @Column("text", {
     unique: true,
   })
-  userName: string;
-
-  @Column("text", {
-    unique: true,
-  })
   email: string;
 
-  @Column("text", {
-    select: false,
-  })
-  password: string;
-
   @Column("text")
-  firstName: string;
-
-  @Column("text")
-  lastName: string;
-
-  @Column({
-    type: "varchar",
-    length: "2",
-  })
-  gender: string;
+  name: string;
 
   @CreateDateColumn({
     type: "timestamp",

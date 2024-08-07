@@ -15,10 +15,13 @@ import { Role } from "src/roles/entities/role.entity";
 import { RolesEnum } from "src/common/enums/roles.enum";
 import { UserRole } from "./entities/user-role.entity";
 import { StatusEnum } from "src/common/enums/status.enum";
+import { ConfigService } from "@nestjs/config";
 
 @Injectable()
 export class AuthService {
   logger: any;
+  private authSecret: string;
+
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
@@ -26,22 +29,41 @@ export class AuthService {
     private readonly roleRepository: Repository<Role>,
     @InjectRepository(UserRole)
     private userRoleRepository: Repository<UserRole>,
-    private readonly jwtService: JwtService
-  ) {}
+    private readonly jwtService: JwtService,
+    private readonly configService: ConfigService
+  ) {
+    this.authSecret = this.configService.get("AUTH_SECRET");
+  }
 
-  async create(createAuthDto: CreateUserDto) {
+  async login(loginAuthDto: LoginUserDto) {
+    const { email, name, authToken } = loginAuthDto;
+
+    if (this.authSecret != authToken)
+      throw new UnauthorizedException("You need a valid token");
+
+    let user = await this.findUser(email);
+
+    if (!user) {
+      user = await this.createUser(email, name);
+    }
+
+    return {
+      ...user,
+      token: this.getJwtToken({ id: user.id }),
+    };
+  }
+
+  async createUser(email: string, name: string): Promise<User> {
     const role = await this.roleRepository.findOne({
-      where: { title: RolesEnum.Admin },
+      where: { title: RolesEnum.Viewer },
       select: { title: true, id: true },
     });
 
     if (!role) throw new NotFoundException("Role not found");
 
-    const { password, ...userData } = createAuthDto;
-
     const user = this.userRepository.create({
-      ...userData,
-      password: bcrypt.hashSync(password, 10),
+      email,
+      name,
     });
 
     await this.userRepository.save(user);
@@ -53,39 +75,35 @@ export class AuthService {
     });
     await this.userRoleRepository.save(userRole);
 
-    delete user.password;
     delete user.createdAt;
     delete user.updatedAt;
+    delete user.status;
 
-    return {
-      ...user,
-      token: this.getJwtToken({ id: user.id }),
-    };
+    delete userRole.createdAt;
+    delete userRole.updatedAt;
+    delete userRole.user;
+    delete userRole.role.id;
+
+    user.userRoles = [userRole];
+    return user;
   }
 
-  async login(loginAuthDto: LoginUserDto) {
-    const { email, password } = loginAuthDto;
+  async findUser(email: string): Promise<User> {
     const user = await this.userRepository.findOne({
       where: { email, userRoles: { status: StatusEnum.Active } },
       relations: ["userRoles", "userRoles.role"],
       select: {
         email: true,
-        password: true,
         id: true,
-        userName: true,
+        name: true,
         userRoles: { id: true, status: true, role: { title: true } },
       },
     });
 
-    if (!user || !bcrypt.compareSync(password, user.password))
-      throw new UnauthorizedException("Credentials are not valid");
+    /* if (!user || !bcrypt.compareSync(password, user.password))
+      throw new UnauthorizedException("Credentials are not valid"); */
 
-    delete user.password;
-    return {
-      ...user,
-      token: this.getJwtToken({ id: user.id }),
-      refreshToken: this.getRefreshJwtToken({ id: user.id }, "7d"),
-    };
+    return user;
   }
 
   private getJwtToken(payload: JwtPayload) {
