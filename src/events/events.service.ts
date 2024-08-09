@@ -148,6 +148,7 @@ export class EventsService {
       });
     }
 
+    queryBuilder.andWhere("event.status = :status", { status: StatusEnum.Active })
     queryBuilder.orderBy("event.id", "DESC");
 
     // const events = await queryBuilder.limit(Number(limit)).getMany();
