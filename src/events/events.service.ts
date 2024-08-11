@@ -62,19 +62,7 @@ export class EventsService {
     await this.eventRepository.save(event);
 
     if (files && Object.keys(files).length > 0) {
-      const baseUrl = this.configService.get("BASE_URL");
-      const eventDocuments = files.images.map((image) => {
-        const url = `${baseUrl}${image.filename}`;
-        return this.eventDocumentRepository.create({
-          documentName: image.filename,
-          documentUrl: url,
-          user,
-          event,
-          status: StatusEnum.Active,
-        });
-      });
-
-      await this.eventDocumentRepository.save(eventDocuments);
+      await this.createEventDocuments(files, user, event);
     }
 
     delete event.user;
@@ -95,6 +83,7 @@ export class EventsService {
         "event.description",
         "event.instructions",
         "event.date",
+        "event.time",
         "event.quota",
         "event.location",
         "event.duration",
@@ -103,7 +92,8 @@ export class EventsService {
       ])
       .leftJoin("event.category", "category")
       .addSelect(["category.id", "category.title", "category.color"])
-      .leftJoin("event.eventDocuments", "eventDocuments")
+      .leftJoin("event.eventDocuments", "eventDocuments",)
+      .andWhere("eventDocuments.status = :status", { status: StatusEnum.Active })
       .addSelect([
         "eventDocuments.id",
         "eventDocuments.documentName",
@@ -193,6 +183,7 @@ export class EventsService {
         "event.description",
         "event.instructions",
         "event.date",
+        "event.time",
         "event.quota",
         "event.location",
         "event.duration",
@@ -230,6 +221,7 @@ export class EventsService {
             })
       )
       .where("event.id = :eventId", { eventId })
+      .andWhere("eventDocuments.status = :status", { status: StatusEnum.Active })
       .getOne();
 
     if (!events) {
@@ -262,8 +254,14 @@ export class EventsService {
   async update(
     id: number,
     updateEventDto: UpdateEventDto,
-    user: User
+    user: User,
+    files: Image
   ): Promise<Event> {
+
+    if (Object.keys(files).length == 0) {
+      delete updateEventDto.mainImage;
+    }
+
     const event = await this.eventRepository.preload({
       id,
       ...updateEventDto,
@@ -277,8 +275,43 @@ export class EventsService {
 
     const updated = await this.eventRepository.save(event);
 
+    if (files && Object.keys(files).length > 0) {
+
+      await this.findAndUpdateEventDocumentByEvent(event.id);
+
+      await this.createEventDocuments(files, user, event);
+    }
+
     delete updated.user;
     return updated;
+  }
+
+  async findAndUpdateEventDocumentByEvent(eventId: number) {
+    const oldEventDocuments = await this.eventDocumentRepository.find({
+      where: { status: StatusEnum.Active, event: { id: eventId} }
+    });
+
+    for (const eventDocument of oldEventDocuments) {
+      eventDocument.status = StatusEnum.Inactive;
+      await this.eventDocumentRepository.save(eventDocument);
+    }
+  }
+
+  async createEventDocuments(files: Image, user: User, event: Event) {
+    const baseUrl = this.configService.get("BASE_URL");
+
+    const eventDocuments = files.images.map((image) => {
+      const url = `${baseUrl}${image.filename}`;
+      return this.eventDocumentRepository.create({
+        documentName: image.filename,
+        documentUrl: url,
+        user,
+        event,
+        status: StatusEnum.Active,
+      });
+    });
+
+    await this.eventDocumentRepository.save(eventDocuments);
   }
 
   async remove(id: number): Promise<Boolean> {

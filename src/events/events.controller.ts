@@ -130,15 +130,34 @@ export class EventsController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "Update event" })
   @Auth(RolesEnum.Admin)
+  @UseInterceptors(FileFieldsInterceptor([{ name: "images" }], {
+    storage: diskStorage({
+      destination: 'public/img',
+      filename: (req, file, cb) => {
+        const user = req.user as User;
+        const pepe = req.body as UpdateEventDto;
+        const userId = user.id;
+        const timestamp = Date.now();
+        const ext = path.extname(file.originalname);
+        const newFilename = `${userId}_${timestamp}${ext}`;
+        if (file.originalname == req.body.mainImage) {
+          req.body.mainImage = newFilename
+        }        
+        cb(null, newFilename);
+      },
+    }),
+  }))
   async update(
     @Param("id") id: string,
     @Body() updateEventDto: UpdateEventDto,
-    @GetUser() user: User
+    @GetUser() user: User,
+    @UploadedFiles(new FileValidationPipe()) files: Image
   ): Promise<ResponseDto<Event>> {
     const eventUpdated = await this.eventsService.update(
       +id,
       updateEventDto,
-      user
+      user,
+      files
     );
 
     return new ResponseDto(HttpStatus.OK, "Event updated", eventUpdated, true);
