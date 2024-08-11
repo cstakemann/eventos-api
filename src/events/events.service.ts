@@ -371,24 +371,71 @@ export class EventsService {
     return userEvent > 0;
   }
 
+  async validateUserEventRegistered(eventId: number, user: User): Promise<Boolean> {
+    const userEvent = await this.userEventRepository.count({
+      where: {
+        event: { id: eventId },
+        user: { id: user.id },
+      },
+    });
+
+    return userEvent > 0;
+  }
+
   async updateEnroll(
     id: number,
     updateEventDto: UpdateUserEventDto,
     user: User
   ): Promise<UserEvent> {
-    const userEvent = await this.userEventRepository.preload({
-      id,
-      ...updateEventDto,
+    let userEvent: UserEvent;
+
+    const event = await this.eventRepository.findOneBy({ id: id });
+    if (!event) {
+      throw new NotFoundException(`Event not found`);
+    }
+
+    const isUserEventRegistered = await this.validateUserEventRegistered(id, user);
+    if (!isUserEventRegistered) {
+      userEvent = await this.createUserEvent(event, user);
+    } else {
+      userEvent = await this.updateUserEvent(event, updateEventDto, user);
+    }
+    
+    return userEvent;
+  }
+
+  async createUserEvent(event: Event, user: User): Promise<UserEvent> {
+    const userEvent = this.userEventRepository.create({
+      event,
+      user,
+      status: UserEventStatusEnum.Active,
     });
 
-    if (!userEvent) throw new NotFoundException("Event not found");
+    await this.userEventRepository.save(userEvent);
 
-    userEvent.user = user;
+    delete userEvent.createdAt;
+    delete userEvent.updatedAt;
+    delete userEvent.event;
+    delete userEvent.user;
+
+    return userEvent;
+  }
+
+  async updateUserEvent(event: Event, updateEventDto: UpdateUserEventDto, user: User): Promise<UserEvent> {
+    const userEvent = await this.userEventRepository.findOne({
+      where: {
+        event: { id: event.id },
+        user: { id: user.id },
+      },
+    });
 
     Object.assign(userEvent, updateEventDto);
 
     const updated = await this.userEventRepository.save(userEvent);
 
+    delete updated.createdAt;
+    delete updated.updatedAt;
+    delete updated.event;
     delete updated.user;
     return updated;
   }
