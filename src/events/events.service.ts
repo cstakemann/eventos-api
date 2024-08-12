@@ -7,10 +7,10 @@ import { CreateEventDto } from "./dto/create-event.dto";
 import { UpdateEventDto } from "./dto/update-event.dto";
 import { User } from "src/auth/entities/user.entity";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
+import { In, Not, Repository } from "typeorm";
 import { Event } from "./entities/event.entity";
 import { StatusEnum } from "src/common/enums/status.enum";
-import { Image } from "./dto/imageName.dto";
+import { EventImage, Image } from "./dto/imageName.dto";
 import { Category } from "src/categories/entities/category.entity";
 import { RolesEnum } from "src/common/enums/roles.enum";
 import { UserEventDto } from "./dto/user-event.dto";
@@ -277,7 +277,7 @@ export class EventsService {
 
     if (files && Object.keys(files).length > 0) {
 
-      await this.findAndUpdateEventDocumentByEvent(event.id);
+      await this.findAndUpdateEventDocumentByEvent(event.id, updateEventDto.currentImages);
 
       await this.createEventDocuments(files, user, event);
     }
@@ -286,9 +286,13 @@ export class EventsService {
     return updated;
   }
 
-  async findAndUpdateEventDocumentByEvent(eventId: number) {
+  async findAndUpdateEventDocumentByEvent(eventId: number, currentImages: any) {
+    const test = currentImages;
+    console.log(`currentImages: `,test)
+    // console.log(`currentImages: `,test[0])
+    const documentNames = [];
     const oldEventDocuments = await this.eventDocumentRepository.find({
-      where: { status: StatusEnum.Active, event: { id: eventId} }
+      where: { status: StatusEnum.Active, event: { id: eventId}, documentName: Not(In(documentNames))  }
     });
 
     for (const eventDocument of oldEventDocuments) {
