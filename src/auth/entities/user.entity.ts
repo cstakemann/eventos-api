@@ -37,7 +37,15 @@ export class User {
   email: string;
 
   @Column("text")
+  userName: string;
+
+  @Column("text")
   name: string;
+
+  @Column("text", {
+    select: false,
+  })
+  password: string;
 
   @CreateDateColumn({
     type: "timestamp",

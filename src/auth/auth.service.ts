@@ -1,5 +1,6 @@
 import {
   Injectable,
+  Logger,
   NotFoundException,
   UnauthorizedException,
 } from "@nestjs/common";
@@ -16,6 +17,7 @@ import { RolesEnum } from "src/common/enums/roles.enum";
 import { UserRole } from "./entities/user-role.entity";
 import { StatusEnum } from "src/common/enums/status.enum";
 import { ConfigService } from "@nestjs/config";
+import { LoggerMiddleware } from "src/common/middleware/logger.middleware";
 
 @Injectable()
 export class AuthService {
@@ -33,6 +35,30 @@ export class AuthService {
     private readonly configService: ConfigService
   ) {
     this.authSecret = this.configService.get("AUTH_SECRET");
+    this.logger = new Logger(LoggerMiddleware.name);
+  }
+
+  async create(createAuthDto: CreateUserDto) {
+    const { email, name, password } = createAuthDto;
+    const userName = email.split("@")[0];
+
+    let isUserNameRegistered = await this.findUserByUserName(userName);
+
+    let user: User;
+    if (isUserNameRegistered) {
+      this.logger.debug(`loginWithPassword start: email: ${email}`);
+      user = await this.loginWithPassword(email, password);
+      this.logger.debug(`loginWithPassword end: user: ${user.email}`);
+    } else {
+      this.logger.debug(`createUserWithPassword: user: ${email}`);
+      user = await this.createUserWithPassword(email, name, password, userName);
+      this.logger.debug(`createUserWithPassword end: user: ${user.email}`);
+    }
+    
+    return {
+      ...user,
+      token: this.getJwtToken({ id: user.id }),
+    };
   }
 
   async login(loginAuthDto: LoginUserDto) {
@@ -106,6 +132,67 @@ export class AuthService {
     return user;
   }
 
+  async findUserByUserName(userName: string): Promise<number> {
+    const user = await this.userRepository.count({
+      where: { userName, status: StatusEnum.Active, userRoles: { status: StatusEnum.Active } },
+    });
+
+    return user;
+  }
+
+  async loginWithPassword(email: string, password: string): Promise<User> {
+    const user = await this.userRepository.findOne({
+      where: { email, status: StatusEnum.Active, userRoles: { status: StatusEnum.Active } },
+      relations: ["userRoles", "userRoles.role"],
+      select: {
+        email: true,
+        password: true,
+        id: true,
+        name: true,
+        userRoles: { id: true, status: true, role: { title: true } },
+      },
+    });
+
+    if (!user || !bcrypt.compareSync(password, user.password))
+      throw new UnauthorizedException("Credentials are not valid");
+
+    return user;
+  }
+
+  async createUserWithPassword(email: string, name: string, password: string, userName: string): Promise<User> {
+    const role = await this.roleRepository.findOne({
+      where: { title: RolesEnum.Viewer },
+      select: { title: true, id: true },
+    });
+
+    if (!role) throw new NotFoundException("Role not found");
+
+    const user = this.userRepository.create({
+      password: this.encryptPassword(password),
+      email,
+      name,
+      userName
+    });
+
+    await this.userRepository.save(user);
+
+    const userRole = await this.createUserRole(user, role);
+
+    delete user.createdAt;
+    delete user.updatedAt;
+    delete user.status;
+    delete user.password;
+
+    delete userRole.createdAt;
+    delete userRole.updatedAt;
+    delete userRole.user;
+    delete userRole.role.id;
+
+    user.userRoles = [userRole];
+
+    return user;
+  }
+
   private getJwtToken(payload: JwtPayload) {
     const token = this.jwtService.sign(payload);
     return token;
@@ -125,5 +212,18 @@ export class AuthService {
     } catch (e) {
       throw new UnauthorizedException("Invalid refresh token");
     }
+  }
+
+  async createUserRole(user: User, role: Role): Promise<UserRole> {
+    const userRole = this.userRoleRepository.create({
+      user,
+      role,
+      status: StatusEnum.Active,
+    });
+    return await this.userRoleRepository.save(userRole);
+  }
+
+  encryptPassword(password: string): string {
+    return bcrypt.hashSync(password, 10);
   }
 }

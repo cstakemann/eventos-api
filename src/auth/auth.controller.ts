@@ -15,6 +15,19 @@ import { ResponseDto } from "src/common/dto/response.dto";
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  @Post("register")
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: "Create user" })
+  @ApiResponse({
+    status: HttpStatus.CREATED,
+    type: CreateUserDto
+  })
+  async create(@Body() createAuthDto: CreateUserDto) {
+    const response = await this.authService.create(createAuthDto);
+
+    return new ResponseDto(HttpStatus.OK, "User created successfully", response, true);
+  }
+
   @Post("login")
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "Log in user" })

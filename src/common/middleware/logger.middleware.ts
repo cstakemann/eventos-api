@@ -7,7 +7,7 @@ export class LoggerMiddleware implements NestMiddleware {
 
   use(req: Request, res: Response, next: NextFunction) {
     const logger = new Logger(LoggerMiddleware.name);
-    const { method, originalUrl, headers, body } = req;
+    const { method, originalUrl, headers } = req;
     const start = Date.now();
 
     // Capture the response
@@ -23,6 +23,11 @@ export class LoggerMiddleware implements NestMiddleware {
     res.end = function (chunk, ...args) {
       if (chunk) {
         chunks.push(chunk);
+      }
+
+      const body = req.body;
+      if (body.password) {
+        delete body.password;
       }
 
       const responseBody = Buffer.concat(chunks).toString('utf8');
