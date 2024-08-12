@@ -257,15 +257,19 @@ export class EventsService {
     user: User,
     files: Image
   ): Promise<Event> {
-    const { currentImages } = updateEventDto;
+    const { currentImages, categoryId } = updateEventDto;
     delete updateEventDto.currentImages;
-    if (Object.keys(files).length == 0) {
-      delete updateEventDto.mainImage;
-    }
+
+    const category = await this.categoryRepository.findOneBy({
+      id: +categoryId,
+    });
+
+    if (!category) throw new NotFoundException("Category not found");
 
     const event = await this.eventRepository.preload({
       id,
       ...updateEventDto,
+      category
     });
 
     if (!event) throw new NotFoundException("Event not found");
@@ -284,11 +288,11 @@ export class EventsService {
     }
 
     delete updated.user;
+    delete updated.category;
     return updated;
   }
 
   async findAndUpdateEventDocumentByEvent(eventId: number, currentImagesData: any) {
-    console.log(`currentImagesData: `,currentImagesData)
     const documentNames = [];
 
     if (currentImagesData) {
