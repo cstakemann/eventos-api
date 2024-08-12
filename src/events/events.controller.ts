@@ -135,7 +135,6 @@ export class EventsController {
       destination: 'public/img',
       filename: (req, file, cb) => {
         const user = req.user as User;
-        const pepe = req.body as UpdateEventDto;
         const userId = user.id;
         const timestamp = Date.now();
         const ext = file.mimetype.split('/')[1];

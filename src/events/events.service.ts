@@ -260,6 +260,8 @@ export class EventsService {
     const { currentImages, categoryId } = updateEventDto;
     delete updateEventDto.currentImages;
 
+    console.log(`updateEventDto: `,updateEventDto)
+
     const category = await this.categoryRepository.findOneBy({
       id: +categoryId,
     });
