@@ -8,6 +8,7 @@ import { EventDocument } from "./entities/event-documents.entity";
 import { PassportModule } from "@nestjs/passport";
 import { CategoriesModule } from "src/categories/categories.module";
 import { ConfigModule } from "@nestjs/config";
+import { BodyParserMiddleware } from "src/common/middleware/body-parser.middleware";
 
 @Module({
   controllers: [EventsController],
@@ -22,4 +23,8 @@ import { ConfigModule } from "@nestjs/config";
   ],
   exports: [TypeOrmModule],
 })
-export class EventsModule {}
+export class EventsModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(BodyParserMiddleware).forRoutes(EventsController);
+  }
+}
