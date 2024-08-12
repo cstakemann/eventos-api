@@ -53,6 +53,7 @@ export class EventsController {
     storage: diskStorage({
       destination: 'public/img',
       filename: (req, file, cb) => {
+        console.log(`file before: `,file)
         const user = req.user as User;
         const userId = user.id;
         const timestamp = Date.now();
