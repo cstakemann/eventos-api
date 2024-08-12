@@ -139,6 +139,9 @@ export class EventsController {
         const userId = user.id;
         const timestamp = Date.now();
         const ext = file.mimetype.split('/')[1];
+        console.log(`req.body.mainImage: `,req.body.mainImage)
+        console.log(`file: `,file)
+        console.log(`ext: `,ext)
         const newFilename = `${userId}_${timestamp}.${ext}`;
         if (file.originalname == req.body.mainImage) {
           req.body.mainImage = newFilename
