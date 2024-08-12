@@ -7,6 +7,7 @@ import { Type } from 'class-transformer';
 export class UpdateEventDto extends PartialType(CreateEventDto) {
 
     @IsString()
+    @IsOptional()
     @ApiProperty()
     currentImages: string
     

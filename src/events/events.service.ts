@@ -257,7 +257,8 @@ export class EventsService {
     user: User,
     files: Image
   ): Promise<Event> {
-
+    const { currentImages } = updateEventDto;
+    delete updateEventDto.currentImages;
     if (Object.keys(files).length == 0) {
       delete updateEventDto.mainImage;
     }
@@ -277,7 +278,7 @@ export class EventsService {
 
     if (files && Object.keys(files).length > 0) {
 
-      await this.findAndUpdateEventDocumentByEvent(event.id, updateEventDto.currentImages);
+      await this.findAndUpdateEventDocumentByEvent(event.id, currentImages);
 
       await this.createEventDocuments(files, user, event);
     }
@@ -286,14 +287,27 @@ export class EventsService {
     return updated;
   }
 
-  async findAndUpdateEventDocumentByEvent(eventId: number, currentImages: any) {
-    const test = currentImages;
-    console.log(`currentImages: `,test)
-    // console.log(`currentImages: `,test[0])
+  async findAndUpdateEventDocumentByEvent(eventId: number, currentImagesData: any) {
+    console.log(`currentImagesData: `,currentImagesData)
     const documentNames = [];
+
+    if (currentImagesData) {
+      const currentImages: EventImage[] = JSON.parse(currentImagesData);
+
+      
+      currentImages.forEach((current) => {
+        documentNames.push(current.documentName);
+      });
+  
+      console.log(`documentNames: `,documentNames)
+    }
+    
+    
     const oldEventDocuments = await this.eventDocumentRepository.find({
       where: { status: StatusEnum.Active, event: { id: eventId}, documentName: Not(In(documentNames))  }
     });
+
+    console.log(`oldEventDocuments: `,oldEventDocuments)
 
     for (const eventDocument of oldEventDocuments) {
       eventDocument.status = StatusEnum.Inactive;
