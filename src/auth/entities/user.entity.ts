@@ -36,7 +36,9 @@ export class User {
   })
   email: string;
 
-  @Column("text")
+  @Column("text", {
+    nullable: true
+  })
   userName: string;
 
   @Column("text")
@@ -44,6 +46,7 @@ export class User {
 
   @Column("text", {
     select: false,
+    nullable: true
   })
   password: string;
 
