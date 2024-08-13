@@ -162,6 +162,16 @@ export class EventsController {
     return new ResponseDto(HttpStatus.OK, "Event updated", eventUpdated, true);
   }
 
+  @Patch("publish/:id")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: "Update event" })
+  @Auth(RolesEnum.Admin)
+  async publishEvent(@Param("id") id: string): Promise<ResponseDto<Event>> {
+    const eventUpdated = await this.eventsService.publishEvent(+id);
+
+    return new ResponseDto(HttpStatus.OK, "Event updated", eventUpdated, true);
+  }
+
   @Delete(":id")
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "Delete event" })

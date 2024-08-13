@@ -501,4 +501,20 @@ export class EventsService {
 
     return total;
   }
+
+  async publishEvent(id: number): Promise<Event> {
+    
+    const event = await this.eventRepository.findOne({ where: { id } });
+
+    if (!event) throw new NotFoundException("Event not found");
+
+    event.published = !event.published;
+
+    const updated = await this.eventRepository.save(event);
+
+    delete updated.user;
+    delete updated.category;
+
+    return updated;
+  }
 }
