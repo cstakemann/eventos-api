@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   Logger,
   NotFoundException,
@@ -51,6 +52,9 @@ export class AuthService {
       this.logger.debug(`loginWithPassword end: user: ${user.email}`);
     } else {
       this.logger.debug(`createUserWithPassword: user: ${email}`);
+
+      if(!name) throw new BadRequestException("name must be a string");
+
       user = await this.createUserWithPassword(email, name, password, userName);
       this.logger.debug(`createUserWithPassword end: user: ${user.email}`);
     }
