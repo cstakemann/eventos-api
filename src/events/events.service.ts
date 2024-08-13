@@ -122,9 +122,7 @@ export class EventsService {
             })
       );
 
-    if (
-      user.userRoles.some((userRole) => userRole.role.title == RolesEnum.Admin)
-    ) {
+    if (user.userRoles.some((userRole) => userRole.role.title == RolesEnum.Admin)) {
       showAllEvents = true;
     }
 
