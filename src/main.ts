@@ -12,7 +12,7 @@ async function bootstrap() {
   app.use(new LoggerMiddleware().use);
 
 
-  app.setGlobalPrefix("api");
+  app.setGlobalPrefix("app");
 
   app.useGlobalPipes(
     new ValidationPipe({
