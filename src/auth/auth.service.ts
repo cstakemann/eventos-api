@@ -58,7 +58,8 @@ export class AuthService {
       user = await this.createUserWithPassword(email, name, password, userName);
       this.logger.debug(`createUserWithPassword end: user: ${user.email}`);
     }
-    
+    delete user.id;
+
     return {
       ...user,
       token: this.getJwtToken({ id: user.id }),
