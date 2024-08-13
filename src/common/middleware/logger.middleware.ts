@@ -25,7 +25,7 @@ export class LoggerMiddleware implements NestMiddleware {
         chunks.push(chunk);
       }
 
-      const body = req.body;
+      const body = req.body || {};
       if (body.password) {
         delete body.password;
       }
