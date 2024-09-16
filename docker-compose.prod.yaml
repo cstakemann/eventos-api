@@ -1,0 +1,40 @@
+version: '3'
+
+services:
+  eventosapp:
+    depends_on:
+      - db
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    image: eventos-api
+    container_name: eventos-app
+    restart: always # reiniciar el contenedor si se detiene
+    ports:
+      - "${PORT}:${PORT}"
+    # working_dir: /var/www/pokedex
+    environment:      
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      PORT: ${PORT}
+      JWT_SECRET: ${JWT_SECRET}
+      BASE_URL: ${BASE_URL}
+      DEFAULT_LIMIT: ${DEFAULT_LIMIT}
+      AUTH_SECRET: ${AUTH_SECRET}
+    # volumes:
+    #   - ./:/var/www/pokedex
+
+  db:
+    image: postgres:15.2
+    restart: always
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    container_name: eventosDB
+    volumes:
+      - ./postgres:/var/lib/postgresql/data

@@ -18,6 +18,16 @@ docker-compose up -d
 npm run start:dev
 ```
 
+7. Realizar build con Docker: 
+```
+docker-compose -f docker-compose.prod.yaml up -d
+```
+
+8. Detener build con Docker: 
+```
+docker-compose -f docker-compose.prod.yaml down
+```
+
 ## Stack utilizado
 * NestJs
 * PostgreSQL

@@ -517,4 +517,30 @@ export class EventsService {
 
     return updated;
   }
+
+  async getAllUsersByEventId(id: number): Promise<User[]> {
+    const eventId = id;
+
+    const events = await this.eventRepository
+    .createQueryBuilder("event")
+    .leftJoin("event.userEvents", "userEvents", "userEvents.status = :status", { status: StatusEnum.Active })
+    .leftJoinAndSelect("userEvents.user", "user")
+    .where("event.id = :eventId", { eventId })
+    .select([
+      "event.id",
+      "userEvents.id",
+      "user.id",
+      "user.name",
+    ])
+    .getOne();
+
+    if (!events) {
+      throw new NotFoundException(`Event with ID ${id} not found`);
+    }
+
+    // Transform the result to rename userEvents to users
+    const users = events.userEvents.map(userEvent => userEvent.user);
+
+    return users;
+  }
 }

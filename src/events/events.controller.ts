@@ -220,5 +220,16 @@ export class EventsController {
     
     return extension;
   }
+
+  
+  @Get(":id/users")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: "Find all users by event" })
+  @Auth(RolesEnum.Admin)
+  async getAllUsersByEventId(@Param("id") id: string): Promise<ResponseDto<User[]>> {
+    const users = await this.eventsService.getAllUsersByEventId(+id);
+
+    return new ResponseDto(HttpStatus.OK, "Users by event retrieved successfully", users, true);
+  }
   
 }
