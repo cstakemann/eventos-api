@@ -93,8 +93,10 @@ export class EventsService {
       ])
       .leftJoin("event.category", "category")
       .addSelect(["category.id", "category.title", "category.color"])
-      .leftJoin("event.eventDocuments", "eventDocuments",)
-      .andWhere("eventDocuments.status = :status", { status: StatusEnum.Active })
+      .leftJoin("event.eventDocuments", "eventDocuments")
+      .andWhere("eventDocuments.status = :status", {
+        status: StatusEnum.Active,
+      })
       .addSelect([
         "eventDocuments.id",
         "eventDocuments.documentName",
@@ -123,7 +125,9 @@ export class EventsService {
             })
       );
 
-    if (user.userRoles.some((userRole) => userRole.role.title == RolesEnum.Admin)) {
+    if (
+      user.userRoles.some((userRole) => userRole.role.title == RolesEnum.Admin)
+    ) {
       showAllEvents = true;
     }
 
@@ -137,7 +141,9 @@ export class EventsService {
       });
     }
 
-    queryBuilder.andWhere("event.status = :status", { status: StatusEnum.Active })
+    queryBuilder.andWhere("event.status = :status", {
+      status: StatusEnum.Active,
+    });
     queryBuilder.orderBy("event.id", "DESC");
 
     // const events = await queryBuilder.limit(Number(limit)).getMany();
@@ -220,7 +226,9 @@ export class EventsService {
             })
       )
       .where("event.id = :eventId", { eventId })
-      .andWhere("eventDocuments.status = :status", { status: StatusEnum.Active })
+      .andWhere("eventDocuments.status = :status", {
+        status: StatusEnum.Active,
+      })
       .getOne();
 
     if (!events) {
@@ -259,7 +267,7 @@ export class EventsService {
     const { currentImages, categoryId } = updateEventDto;
     delete updateEventDto.currentImages;
 
-    console.log(`updateEventDto: `,updateEventDto)
+    console.log(`updateEventDto: `, updateEventDto);
 
     const category = await this.categoryRepository.findOneBy({
       id: +categoryId,
@@ -270,7 +278,7 @@ export class EventsService {
     const event = await this.eventRepository.preload({
       id,
       ...updateEventDto,
-      category
+      category,
     });
 
     if (!event) throw new NotFoundException("Event not found");
@@ -282,7 +290,6 @@ export class EventsService {
     const updated = await this.eventRepository.save(event);
 
     if (files && Object.keys(files).length > 0) {
-
       await this.findAndUpdateEventDocumentByEvent(event.id, currentImages);
 
       await this.createEventDocuments(files, user, event);
@@ -293,26 +300,31 @@ export class EventsService {
     return updated;
   }
 
-  async findAndUpdateEventDocumentByEvent(eventId: number, currentImagesData: any) {
+  async findAndUpdateEventDocumentByEvent(
+    eventId: number,
+    currentImagesData: any
+  ) {
     const documentNames = [];
 
     if (currentImagesData) {
       const currentImages: EventImage[] = JSON.parse(currentImagesData);
 
-      
       currentImages.forEach((current) => {
         documentNames.push(current.documentName);
       });
-  
-      console.log(`documentNames: `,documentNames)
+
+      console.log(`documentNames: `, documentNames);
     }
-    
-    
+
     const oldEventDocuments = await this.eventDocumentRepository.find({
-      where: { status: StatusEnum.Active, event: { id: eventId}, documentName: Not(In(documentNames))  }
+      where: {
+        status: StatusEnum.Active,
+        event: { id: eventId },
+        documentName: Not(In(documentNames)),
+      },
     });
 
-    console.log(`oldEventDocuments: `,oldEventDocuments)
+    console.log(`oldEventDocuments: `, oldEventDocuments);
 
     for (const eventDocument of oldEventDocuments) {
       eventDocument.status = StatusEnum.Inactive;
@@ -365,13 +377,12 @@ export class EventsService {
       throw new ConflictException(`User is already registered for this event`);
     }
 
-    const userEvent = this.userEventRepository.create({
-      event,
-      user,
-      status: UserEventStatusEnum.Active,
-    });
+    const validateUserEventsHours = await this.validateUserEventsHours(event, user);
+    if (validateUserEventsHours) {
+      throw new ConflictException(`User is already registered for an event on the same date`);
+    }
 
-    await this.userEventRepository.save(userEvent);
+    const userEvent = await this.createUserEvent(event, user);
 
     delete userEvent.user;
     delete userEvent.event;
@@ -394,7 +405,77 @@ export class EventsService {
     return userEvent > 0;
   }
 
-  async validateUserEventRegistered(eventId: number, user: User): Promise<Boolean> {
+  async validateUserEventsHours(newEvent: Event, user: User): Promise<Boolean> {
+    const { time, date, duration } = newEvent;
+    let isInvalidToEnroll: Boolean = false;
+
+    let events: Event[];
+    const userEvent = await this.userEventRepository.find({
+      where: {
+        user: { id: user.id },
+        status: UserEventStatusEnum.Active,
+      },
+      relations: {
+        event: true,
+      },
+    });
+
+    events = userEvent.map((userEvent) => userEvent.event);
+    const eventsSameDate = events.filter(event => event.date == date );
+    isInvalidToEnroll = eventsSameDate.some(event => event.allDay);
+
+    if(!isInvalidToEnroll) {
+      for (const event of eventsSameDate) {
+        const endTime = this.calculateEndTime(event);
+        const endTimeToValidate = this.calculateEndTime(newEvent);
+        isInvalidToEnroll = this.validateEventHour(event.time, endTime, time, endTimeToValidate );
+        if(isInvalidToEnroll) break;
+      }
+    }
+
+    return isInvalidToEnroll;
+  }
+
+  calculateEndTime(event: Event): string {
+    const [hours, minutes] = event.time.split(':').map(Number);
+    const durationHours = Number(event.duration);
+  
+    const startTime = new Date();
+    startTime.setHours(hours);
+    startTime.setMinutes(minutes);
+  
+    startTime.setHours(startTime.getHours() + durationHours);
+
+    const endTime = startTime.toTimeString().slice(0, 5);
+    
+    return endTime;
+  }  
+
+  validateEventHour(startTime: string, endTime: string, hourToValidate: string, endTimeToValidate: string): Boolean {
+    let result: Boolean = false;
+    const [startHours, startMinutes] = startTime.split(':').map(Number);
+    const [endHours, endMinutes] = endTime.split(':').map(Number);
+    const [validateHours, validateMinutes] = hourToValidate.split(':').map(Number);
+    const [validateEndHours, validateEndMinutes] = endTimeToValidate.split(':').map(Number);
+  
+    const startInMinutes = startHours * 60 + startMinutes;
+    const endInMinutes = endHours * 60 + endMinutes;
+    const validateInMinutes = validateHours * 60 + validateMinutes;
+    const validateEndTimeMinutes = validateEndHours * 60 + validateEndMinutes;
+  
+    if(validateInMinutes >= startInMinutes && validateInMinutes <= endInMinutes) {
+      result = true;
+    } else if(validateEndTimeMinutes >= startInMinutes && validateEndTimeMinutes <= endInMinutes) {
+      result = true;
+    }
+
+    return result;
+  }  
+
+  async validateUserEventRegistered(
+    eventId: number,
+    user: User
+  ): Promise<Boolean> {
     const userEvent = await this.userEventRepository.count({
       where: {
         event: { id: eventId },
@@ -417,13 +498,16 @@ export class EventsService {
       throw new NotFoundException(`Event not found`);
     }
 
-    const isUserEventRegistered = await this.validateUserEventRegistered(id, user);
+    const isUserEventRegistered = await this.validateUserEventRegistered(
+      id,
+      user
+    );
     if (!isUserEventRegistered) {
       userEvent = await this.createUserEvent(event, user);
     } else {
       userEvent = await this.updateUserEvent(event, updateEventDto, user);
     }
-    
+
     return userEvent;
   }
 
@@ -444,7 +528,11 @@ export class EventsService {
     return userEvent;
   }
 
-  async updateUserEvent(event: Event, updateEventDto: UpdateUserEventDto, user: User): Promise<UserEvent> {
+  async updateUserEvent(
+    event: Event,
+    updateEventDto: UpdateUserEventDto,
+    user: User
+  ): Promise<UserEvent> {
     const userEvent = await this.userEventRepository.findOne({
       where: {
         event: { id: event.id },
@@ -505,7 +593,6 @@ export class EventsService {
   }
 
   async publishEvent(id: number): Promise<Event> {
-    
     const event = await this.eventRepository.findOne({ where: { id } });
 
     if (!event) throw new NotFoundException("Event not found");
@@ -524,24 +611,24 @@ export class EventsService {
     const eventId = id;
 
     const events = await this.eventRepository
-    .createQueryBuilder("event")
-    .leftJoin("event.userEvents", "userEvents", "userEvents.status = :status", { status: StatusEnum.Active })
-    .leftJoinAndSelect("userEvents.user", "user")
-    .where("event.id = :eventId", { eventId })
-    .select([
-      "event.id",
-      "userEvents.id",
-      "user.id",
-      "user.name",
-    ])
-    .getOne();
+      .createQueryBuilder("event")
+      .leftJoin(
+        "event.userEvents",
+        "userEvents",
+        "userEvents.status = :status",
+        { status: StatusEnum.Active }
+      )
+      .leftJoinAndSelect("userEvents.user", "user")
+      .where("event.id = :eventId", { eventId })
+      .select(["event.id", "userEvents.id", "user.id", "user.name"])
+      .getOne();
 
     if (!events) {
       throw new NotFoundException(`Event with ID ${id} not found`);
     }
 
     // Transform the result to rename userEvents to users
-    const users = events.userEvents.map(userEvent => userEvent.user);
+    const users = events.userEvents.map((userEvent) => userEvent.user);
 
     return users;
   }

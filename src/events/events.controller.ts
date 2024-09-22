@@ -235,14 +235,14 @@ export class EventsController {
 
   @Patch(":id/user/attended")
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: "Find all users by event" })
+  @ApiOperation({ summary: "Update attended user an event" })
   @Auth(RolesEnum.Admin)
   async updateAttendedUser(
     @Param("id") id: string,
     @Body() updateAttendedUser: UpdateAttendedUser): Promise<ResponseDto<UserEvent>> {
     const users = await this.eventsService.updateAttendedUser(+id, updateAttendedUser);
 
-    return new ResponseDto(HttpStatus.OK, "Users by event retrieved successfully", users, true);
+    return new ResponseDto(HttpStatus.OK, "Attended updated", users, true);
   }
   
 }
