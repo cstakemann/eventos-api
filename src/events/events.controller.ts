@@ -36,6 +36,7 @@ import { diskStorage } from "multer";
 import * as path from 'path';
 import { PaginationDto } from "src/common/dto/pagination.dto";
 import { UpdateUserEventDto } from "./dto/update-user-event.dto";
+import { UpdateAttendedUser } from "./dto/update-attended-user.dto";
 
 @Auth()
 @ApiBearerAuth()
@@ -228,6 +229,18 @@ export class EventsController {
   @Auth(RolesEnum.Admin)
   async getAllUsersByEventId(@Param("id") id: string): Promise<ResponseDto<User[]>> {
     const users = await this.eventsService.getAllUsersByEventId(+id);
+
+    return new ResponseDto(HttpStatus.OK, "Users by event retrieved successfully", users, true);
+  }
+
+  @Patch(":id/user/attended")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: "Find all users by event" })
+  @Auth(RolesEnum.Admin)
+  async updateAttendedUser(
+    @Param("id") id: string,
+    @Body() updateAttendedUser: UpdateAttendedUser): Promise<ResponseDto<UserEvent>> {
+    const users = await this.eventsService.updateAttendedUser(+id, updateAttendedUser);
 
     return new ResponseDto(HttpStatus.OK, "Users by event retrieved successfully", users, true);
   }

@@ -20,6 +20,7 @@ import { EventDocument } from "./entities/event-documents.entity";
 import { ConfigService } from "@nestjs/config";
 import { PaginationDto } from "src/common/dto/pagination.dto";
 import { UpdateUserEventDto } from "./dto/update-user-event.dto";
+import { UpdateAttendedUser } from "./dto/update-attended-user.dto";
 
 @Injectable()
 export class EventsService {
@@ -469,6 +470,7 @@ export class EventsService {
       .leftJoinAndSelect("userEvent.event", "event")
       .where("userEvent.userId = :userId", { userId: user.id })
       .andWhere("userEvent.status = :status", { status: StatusEnum.Active })
+      .andWhere("userEvent.attended = :attended", { attended: true })
       .andWhere("event.date <= :date", { date })
       .getMany();
 
@@ -542,5 +544,34 @@ export class EventsService {
     const users = events.userEvents.map(userEvent => userEvent.user);
 
     return users;
+  }
+
+  async updateAttendedUser(
+    id: number,
+    updateAttendedUser: UpdateAttendedUser
+  ): Promise<UserEvent> {
+    const { userId, attended } = updateAttendedUser;
+
+    const userEvent = await this.userEventRepository.findOne({
+      where: {
+        event: { id: id },
+        user: { id: userId },
+      },
+    });
+
+    if (!userEvent) {
+      throw new NotFoundException(`User or Event not found`);
+    }
+
+    userEvent.attended = attended;
+
+    const updated = await this.userEventRepository.save(userEvent);
+
+    delete updated.createdAt;
+    delete updated.updatedAt;
+    delete updated.event;
+    delete updated.user;
+    delete updated.notes;
+    return updated;
   }
 }

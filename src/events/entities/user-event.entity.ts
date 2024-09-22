@@ -44,4 +44,9 @@ export class UserEvent {
     default: StatusEnum.Active,
   })
   status: string;
+
+  @Column("bool",{
+    default: false
+  })
+  attended: boolean;
 }
