@@ -45,7 +45,7 @@ export class UsersService {
     return `This action returns a #${id} user`;
   }
 
-  async updateUserRole(id: number, updateUserRoleDto: UpdateUserRoleDto): Promise<UserRole> {
+  async updateUserRole(updateUserRoleDto: UpdateUserRoleDto): Promise<UserRole> {
     const { roleId, userId } = updateUserRoleDto;
     let userRole: UserRole;
 

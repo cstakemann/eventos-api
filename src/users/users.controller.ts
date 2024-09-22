@@ -24,12 +24,12 @@ export class UsersController {
     return new ResponseDto(HttpStatus.OK, "Users retrieved successfully", users, true);
   }
 
-  @Patch(':id/update-role')
+  @Patch('update-role')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "Update user role" })
   @Auth(RolesEnum.Admin)
-  async updateUserRole(@Param('id') id: string, @Body() updateUserRoleDto: UpdateUserRoleDto): Promise<ResponseDto<UserRole>> {
-    const user = await this.usersService.updateUserRole(+id, updateUserRoleDto);
+  async updateUserRole(@Body() updateUserRoleDto: UpdateUserRoleDto): Promise<ResponseDto<UserRole>> {
+    const user = await this.usersService.updateUserRole(updateUserRoleDto);
 
     return new ResponseDto(HttpStatus.OK, "User role updated successfully", user, true);
   }
