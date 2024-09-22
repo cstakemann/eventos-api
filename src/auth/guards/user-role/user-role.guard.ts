@@ -9,6 +9,7 @@ import { Reflector } from "@nestjs/core";
 import { Observable } from "rxjs";
 import { META_ROLES } from "src/auth/decorators/role-protected.decorator";
 import { User } from "src/auth/entities/user.entity";
+import { StatusEnum } from "src/common/enums/status.enum";
 
 @Injectable()
 export class UserRoleGuard implements CanActivate {
@@ -30,7 +31,7 @@ export class UserRoleGuard implements CanActivate {
 
     if (!user) throw new BadRequestException("User not found");
 
-    if (user.userRoles.some((userRole) => validRoles.includes(userRole.role.title))) return true;
+    if (user.userRoles.some((userRole) => validRoles.includes(userRole.role.title) && userRole.status == StatusEnum.Active )) return true;
 
     throw new ForbiddenException(
       `User ${user.email} need a valid role: [${validRoles}]`
